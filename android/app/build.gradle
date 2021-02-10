@@ -38,6 +38,7 @@ android {
         applicationId "com.souvikbiswas.notify"
         minSdkVersion 16
         targetSdkVersion 30
+        multiDexEnabled true
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
