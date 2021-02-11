@@ -3,14 +3,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:notify/model/push_notification.dart';
 import 'package:overlay_support/overlay_support.dart';
-// import 'package:notify/utils/notification_client.dart';
-
-GlobalKey notificationKey;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  // NotificationClient.registerNotification();
   runApp(MyApp());
 }
 
