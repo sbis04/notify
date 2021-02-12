@@ -3,16 +3,13 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:notify/model/push_notification.dart';
 import 'package:overlay_support/overlay_support.dart';
-// import 'package:notify/utils/notification_client.dart';
 
-GlobalKey notificationKey;
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  // NotificationClient.registerNotification();
+void main() {
   runApp(MyApp());
 }
+
+PushNotification _notificationInfo;
+int _totalNotifications;
 
 class MyApp extends StatelessWidget {
   @override
@@ -24,26 +21,34 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.deepPurple,
         ),
         debugShowCheckedModeBanner: false,
-        home: MyHomePage(),
+        home: HomePage(),
       ),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
+Future<dynamic> _firebaseMessagingBackgroundHandler(
+  Map<String, dynamic> message,
+) async {
+  // Initialize the Firebase app
+  await Firebase.initializeApp();
+  print('onBackgroundMessage received: $message');
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  static FirebaseMessaging messaging = FirebaseMessaging();
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
 
-  PushNotification _notificationInfo;
-  int _totalNotifications;
+class _HomePageState extends State<HomePage> {
+  FirebaseMessaging _messaging = FirebaseMessaging();
 
   void registerNotification() async {
+    // Initialize the Firebase app
+    await Firebase.initializeApp();
+
     // On iOS, this helps to take the user permissions
-    await messaging.requestNotificationPermissions(
+    await _messaging.requestNotificationPermissions(
       IosNotificationSettings(
         alert: true,
         badge: true,
@@ -52,7 +57,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
 
-    messaging.configure(
+    // For handling the received notifications
+    _messaging.configure(
       onMessage: (message) async {
         print('onMessage received: $message');
 
@@ -63,6 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _totalNotifications++;
         });
 
+        // For displaying the notification as an overlay
         showSimpleNotification(
           Text(_notificationInfo.title),
           leading: NotificationBadge(totalNotifications: _totalNotifications),
@@ -71,9 +78,31 @@ class _MyHomePageState extends State<MyHomePage> {
           duration: Duration(seconds: 2),
         );
       },
+      onBackgroundMessage: _firebaseMessagingBackgroundHandler,
+      onLaunch: (message) async {
+        print('onLaunch: $message');
+
+        PushNotification notification = PushNotification.fromJson(message);
+
+        setState(() {
+          _notificationInfo = notification;
+          _totalNotifications++;
+        });
+      },
+      onResume: (message) async {
+        print('onResume: $message');
+
+        PushNotification notification = PushNotification.fromJson(message);
+
+        setState(() {
+          _notificationInfo = notification;
+          _totalNotifications++;
+        });
+      },
     );
 
-    messaging.getToken().then((token) {
+    // Used to get the current FCM token
+    _messaging.getToken().then((token) {
       print('Token: $token');
     }).catchError((e) {
       print(e);
@@ -113,7 +142,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'TITLE: ${_notificationInfo.title}',
+                      'TITLE: ${_notificationInfo.title ?? _notificationInfo.dataTitle}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16.0,
@@ -121,7 +150,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     SizedBox(height: 8.0),
                     Text(
-                      'BODY: ${_notificationInfo.body}',
+                      'BODY: ${_notificationInfo.body ?? _notificationInfo.dataBody}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16.0,
@@ -162,25 +191,3 @@ class NotificationBadge extends StatelessWidget {
     );
   }
 }
-
-// class MessageNotification extends StatelessWidget {
-//   final PushNotification notification;
-
-//   MessageNotification({@required this.notification});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Card(
-//       margin: const EdgeInsets.symmetric(horizontal: 4),
-//       child: SafeArea(
-//         child: ListTile(
-//           // leading: SizedBox.fromSize(
-//           //     size: const Size(40, 40),
-//           //     child: ClipOval(child: Image.asset('assets/avatar.png'))),
-//           title: Text('Boyan'),
-//           subtitle: Text(message),
-//         ),
-//       ),
-//     );
-//   }
-// }
