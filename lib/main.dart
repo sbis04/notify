@@ -159,7 +159,7 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'TITLE: ${_notificationInfo!.title}',
+                      'TITLE: ${_notificationInfo!.dataTitle ?? _notificationInfo!.title}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16.0,
@@ -167,7 +167,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     SizedBox(height: 8.0),
                     Text(
-                      'BODY: ${_notificationInfo!.body}',
+                      'BODY: ${_notificationInfo!.dataBody ?? _notificationInfo!.body}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16.0,
