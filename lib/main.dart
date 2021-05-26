@@ -77,7 +77,7 @@ class _HomePageState extends State<HomePage> {
             Text(_notificationInfo!.title!),
             leading: NotificationBadge(totalNotifications: _totalNotifications),
             subtitle: Text(_notificationInfo!.body!),
-            background: Colors.cyan[700],
+            background: Colors.cyan.shade700,
             duration: Duration(seconds: 2),
           );
         }
