@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:notify/model/push_notification.dart';
 import 'package:overlay_support/overlay_support.dart';
 
-void main() {
-  runApp(MyApp());
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  print("Handling a background message: ${message.messageId}");
 }
 
-PushNotification _notificationInfo;
-int _totalNotifications;
+void main() async {
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
@@ -27,92 +28,84 @@ class MyApp extends StatelessWidget {
   }
 }
 
-Future<dynamic> _firebaseMessagingBackgroundHandler(
-  Map<String, dynamic> message,
-) async {
-  // Initialize the Firebase app
-  await Firebase.initializeApp();
-  print('onBackgroundMessage received: $message');
-}
-
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  FirebaseMessaging _messaging = FirebaseMessaging();
+  late final FirebaseMessaging _messaging;
+  late int _totalNotifications;
+  PushNotification? _notificationInfo;
 
-  void registerNotification() async {
-    // Initialize the Firebase app
+  initializeNotification() async {
     await Firebase.initializeApp();
+    _messaging = FirebaseMessaging.instance;
 
-    // On iOS, this helps to take the user permissions
-    await _messaging.requestNotificationPermissions(
-      IosNotificationSettings(
-        alert: true,
-        badge: true,
-        provisional: false,
-        sound: true,
-      ),
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    NotificationSettings settings = await _messaging.requestPermission(
+      alert: true,
+      badge: true,
+      provisional: false,
+      sound: true,
     );
 
-    // For handling the received notifications
-    _messaging.configure(
-      onMessage: (message) async {
-        print('onMessage received: $message');
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print('User granted permission');
 
-        PushNotification notification = PushNotification.fromJson(message);
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print(
+            'Message title: ${message.notification?.title}, body: ${message.notification?.body}, data: ${message.data}');
 
-        setState(() {
-          _notificationInfo = notification;
-          _totalNotifications++;
-        });
-
-        // For displaying the notification as an overlay
-        showSimpleNotification(
-          Text(_notificationInfo.title),
-          leading: NotificationBadge(totalNotifications: _totalNotifications),
-          subtitle: Text(_notificationInfo.body),
-          background: Colors.cyan[700],
-          duration: Duration(seconds: 2),
+        // Parse the message received
+        PushNotification notification = PushNotification(
+          title: message.notification?.title,
+          body: message.notification?.body,
+          dataTitle: message.data['title'],
+          dataBody: message.data['body'],
         );
-      },
-      onBackgroundMessage: _firebaseMessagingBackgroundHandler,
-      onLaunch: (message) async {
-        print('onLaunch: $message');
-
-        PushNotification notification = PushNotification.fromJson(message);
 
         setState(() {
           _notificationInfo = notification;
           _totalNotifications++;
         });
-      },
-      onResume: (message) async {
-        print('onResume: $message');
 
-        PushNotification notification = PushNotification.fromJson(message);
-
-        setState(() {
-          _notificationInfo = notification;
-          _totalNotifications++;
-        });
-      },
-    );
-
-    // Used to get the current FCM token
-    _messaging.getToken().then((token) {
-      print('Token: $token');
-    }).catchError((e) {
-      print(e);
-    });
+        if (_notificationInfo != null) {
+          // For displaying the notification as an overlay
+          showSimpleNotification(
+            Text(_notificationInfo!.title!),
+            leading: NotificationBadge(totalNotifications: _totalNotifications),
+            subtitle: Text(_notificationInfo!.body!),
+            background: Colors.cyan[700],
+            duration: Duration(seconds: 2),
+          );
+        }
+      });
+    } else {
+      print('User declined or has not accepted permission');
+    }
   }
 
   @override
   void initState() {
     _totalNotifications = 0;
-    registerNotification();
+    initializeNotification();
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      PushNotification notification = PushNotification(
+        title: message.notification?.title,
+        body: message.notification?.body,
+        dataTitle: message.data['title'],
+        dataBody: message.data['body'],
+      );
+
+      setState(() {
+        _notificationInfo = notification;
+        _totalNotifications++;
+      });
+    });
+
     super.initState();
   }
 
@@ -142,7 +135,7 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'TITLE: ${_notificationInfo.title ?? _notificationInfo.dataTitle}',
+                      'TITLE: ${_notificationInfo!.title}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16.0,
@@ -150,7 +143,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     SizedBox(height: 8.0),
                     Text(
-                      'BODY: ${_notificationInfo.body ?? _notificationInfo.dataBody}',
+                      'BODY: ${_notificationInfo!.body}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16.0,
@@ -168,7 +161,7 @@ class _HomePageState extends State<HomePage> {
 class NotificationBadge extends StatelessWidget {
   final int totalNotifications;
 
-  const NotificationBadge({@required this.totalNotifications});
+  const NotificationBadge({required this.totalNotifications});
 
   @override
   Widget build(BuildContext context) {
