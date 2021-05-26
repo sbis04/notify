@@ -87,6 +87,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // For handling notification when the app is in terminated state
   checkForInitialMessage() async {
     await Firebase.initializeApp();
     RemoteMessage? initialMessage =
@@ -113,6 +114,8 @@ class _HomePageState extends State<HomePage> {
     initializeNotification();
     checkForInitialMessage();
 
+    // For handling notification when the app is in background
+    // but not terminated
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       PushNotification notification = PushNotification(
         title: message.notification?.title,
