@@ -38,7 +38,7 @@ class _HomePageState extends State<HomePage> {
   late int _totalNotifications;
   PushNotification? _notificationInfo;
 
-  initializeNotification() async {
+  void registerNotification() async {
     await Firebase.initializeApp();
     _messaging = FirebaseMessaging.instance;
 
@@ -111,7 +111,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     _totalNotifications = 0;
-    initializeNotification();
+    registerNotification();
     checkForInitialMessage();
 
     // For handling notification when the app is in background
